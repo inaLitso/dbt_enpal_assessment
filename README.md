@@ -84,7 +84,8 @@ Two key history tables use **incremental loading**:
 
 Features:
 
-* `incremental_strategy='merge'` → handles late-arriving data efficiently
+* `incremental_strategy='append'` for the int_deal_stages_history because every change will generate a new row 
+* `incremental_strategy='merge'` → for the int_activity_history to handle late-arriving data efficiently
 * Filter recent records to reduce scan volume:
 
 ```sql

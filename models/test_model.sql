@@ -1,2 +1,2 @@
 SELECT *
-FROM {{ source('postgres_public','activity') }}
+FROM {{ source('pipedrive','activity') }}
