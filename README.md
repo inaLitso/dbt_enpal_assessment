@@ -98,7 +98,12 @@ Features:
 ---
 
 ## Models Implemented
-
+```sql
+SELECT table_schema, table_name, table_type
+FROM postgres.information_schema.tables
+WHERE table_schema LIKE 'public_crm%'
+ORDER BY table_schema, table_name
+```
 ### Staging (views)
 
 * `stg_pipedrive_activity`
