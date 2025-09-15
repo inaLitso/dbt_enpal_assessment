@@ -38,7 +38,7 @@ models:
       intermediate:
         +schema: crm_intermediate
       mart:
-        +schema: crm_marts
+        +schema: crm_mart
         +materialized: table
-    +schema: public_pipedrive_analytics
+    +schema: pipedrive_analytics
     +materialized: table
