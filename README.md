@@ -1,34 +1,160 @@
-## Setup
+# CRM Analytics Data Models
 
-1. Download Docker Desktop (if you don’t have installed) using the official website, install and launch.
-2. Fork this Github project to you Github account. Clone the forked repo to your device.
-3. Open your Command Prompt or Terminal, navigate to that folder, and run the command `docker compose up`.
-4. Now you have launched a local Postgres database with the following credentials:
- ```
-    Host: localhost
-    User: admin
-    Password: admin
-    Port: 5432 
+## Overview
+
+This project builds a **scalable and maintainable CRM analytics foundation** using dbt.
+It transforms raw CRM data into **clean, well-documented, and analysis-ready datasets**.
+
+Key design principles:
+
+* Domain-oriented structure (`crm`)
+* Three-layer modeling: **staging → intermediate → mart**
+* Centralized documentation and tests for reusability
+
+---
+
+## Project Structure
+
 ```
-5. Connect to the db via a preferred tool (e.g. DataGrip, Dbeaver etc)
-6. Install dbt-core and dbt-postgres using pip (if you don’t have) on your preferred environment.
-7. Now you can run `dbt run` with the test model and check public_pipedrive_analytics schema to see the dbt result (with one test model)
+models/
+  crm/
+    staging/        # Source-aligned, light transformations (views)
+    intermediate/   # Business logic, history tables (tables)
+    mart/           # Reporting-ready datasets (tables)
+  documentation/
+    documentation_crm.md
+```
 
-## Project
-1. Remove the test model once you make sure it works
-2. Dive deep into the Pipedrive CRM source data to gain a thorough understanding of all its details. (You may also research the Pipedrive CRM tool terms).
-3. Define DBT sources and build the necessary layers organizing the data flow for optimal relevance and maintainability.
-4. Build a reporting model (rep_sales_funnel_monthly) with monthly intervals, incorporating the following funnel steps (KPIs):  
-  &nbsp;&nbsp;&nbsp;Step 1: Lead Generation  
-  &nbsp;&nbsp;&nbsp;Step 2: Qualified Lead  
-  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Step 2.1: Sales Call 1  
-  &nbsp;&nbsp;&nbsp;Step 3: Needs Assessment  
-  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Step 3.1: Sales Call 2  
-  &nbsp;&nbsp;&nbsp;Step 4: Proposal/Quote Preparation  
-  &nbsp;&nbsp;&nbsp;Step 5: Negotiation  
-  &nbsp;&nbsp;&nbsp;Step 6: Closing  
-  &nbsp;&nbsp;&nbsp;Step 7: Implementation/Onboarding  
-  &nbsp;&nbsp;&nbsp;Step 8: Follow-up/Customer Success  
-  &nbsp;&nbsp;&nbsp;Step 9: Renewal/Expansion
-5. Column names of the reporting model: `month`, `kpi_name`, `funnel_step`, `deals_count`
-6. “Git commit” all the changes and create a PR to your forked repo (not the original one). Send your repo link to us.
+### Layer Details
+
+* **Staging (`crm_staging`)**
+
+  * 1:1 with sources, light transformations (renaming, typing)
+  * Implemented as **views** → avoids duplication, ensures freshness
+
+* **Intermediate (`crm_intermediate`)**
+
+  * Complex business logic, joins, transformations
+  * Implemented as **tables** → optimized for downstream queries
+
+* **Mart (`crm_marts`)**
+
+  * Reporting-ready datasets for analysts
+  * Implemented as **tables** → performance and stability
+
+---
+
+## dbt Configuration
+
+```yaml
+crm:
+  staging:
+    +schema: crm_staging
+    +materialized: view
+  intermediate:
+    +schema: crm_intermediate
+  mart:
+    +schema: crm_marts
+    +materialized: table
+```
+
+* Ensures each layer is placed in the correct schema
+* Default materializations enforce consistency
+* Supports **clear separation of concerns** and maintainability
+
+---
+
+## Documentation & Testing
+
+* Centralized column descriptions in `models/documentation/documentation_crm.md`
+* Each layer has a YAML file with:
+  * Models description
+  * Columns description (referencing centralized doc)
+  * Tests: `not_null`, `unique`
+* Ensures **consistency, collaboration, and governance**
+
+---
+
+## Incremental Models
+
+Two key history tables use **incremental loading**:
+
+* `int_activity_history`
+* `int_deal_staging_history`
+
+Features:
+
+* `incremental_strategy='append'` for the int_deal_stages_history because every change will generate a new row 
+* `incremental_strategy='merge'` → for the int_activity_history to handle late-arriving data efficiently
+* Filter recent records to reduce scan volume:
+
+```sql
+{% if is_incremental() %}
+  WHERE due_to_at >= current_date - interval '{{ lookback_days }} day'
+{% endif %}
+```
+
+* Manual indexes added to improve query performance (e.g., `(deal_id, stage_started_at)`)
+```sql
+CREATE INDEX IF NOT EXISTS idx_deal_stage_history
+   ON public_crm_intermediate.int_deal_stages_history (deal_id, stage_started_at);
+```
+![img.png](img.png)
+---
+
+## Models Implemented
+```sql
+SELECT table_schema, table_name, table_type
+FROM postgres.information_schema.tables
+WHERE table_schema LIKE 'public_crm%'
+ORDER BY table_schema, table_name
+```
+### Staging (views)
+
+* `stg_pipedrive_activity`
+* `stg_pipedrive_activity_types`
+* `stg_pipedrive_deal_changes`
+* `stg_pipedrive_fields`
+* `stg_pipedrive_stages`
+* `stg_pipedrive_users`
+
+### Intermediate (tables)
+
+* `int_activity_history`
+* `int_call_funnel`
+* `int_deal_stages_history`
+* `int_field_options`
+* `int_sales_call_funnel`
+* `int_unpivot_fields`
+
+### Mart (tables)
+
+* `mrt_rep_sales_funnel_monthly`
+
+## dbt Documentation & Lineage
+By running the following commands:
+- dbt docs generate
+- dbt docs serve
+
+you can view the full documentation, tests, and model lineage in an interactive interface.
+
+This allows to:
+- Explore each model and its column descriptions
+- See test coverage for each column
+- Visualize the dependency graph and how data flows from sources → staging → intermediate → marts
+![img_3.png](img_3.png)
+![img_1.png](img_1.png)
+
+## Future Improvements
+
+* Create a **snapshot table** with the latest deal stage for faster access
+* **Mask PII** in the `users` table for compliance (GDPR)
+
+---
+
+## Key Benefits
+
+* **Maintainability** → clear layer separation, domain-oriented structure
+* **Performance** → incremental models and indexes
+* **Collaboration** → centralized docs and tests
+* **Scalability** → ready to extend for additional domains (finance, marketing, etc.)
