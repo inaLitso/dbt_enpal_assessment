@@ -67,9 +67,9 @@ crm:
 ## Documentation & Testing
 
 * Centralized column descriptions in `models/documentation/documentation_crm.md`
-* Each model has a YAML file with:
-
-  * Column descriptions (referencing centralized doc)
+* Each layer has a YAML file with:
+  * Models description
+  * Columns description (referencing centralized doc)
   * Tests: `not_null`, `unique`
 * Ensures **consistency, collaboration, and governance**
 
@@ -94,7 +94,11 @@ Features:
 ```
 
 * Manual indexes added to improve query performance (e.g., `(deal_id, stage_started_at)`)
-
+```sql
+CREATE INDEX IF NOT EXISTS idx_deal_stage_history
+   ON public_crm_intermediate.int_deal_stages_history (deal_id, stage_started_at);
+```
+![img.png](img.png)
 ---
 
 ## Models Implemented
@@ -126,7 +130,19 @@ ORDER BY table_schema, table_name
 
 * `mrt_rep_sales_funnel_monthly`
 
----
+## dbt Documentation & Lineage
+By running the following commands:
+- dbt docs generate
+- dbt docs serve
+
+you can view the full documentation, tests, and model lineage in an interactive interface.
+
+This allows to:
+- Explore each model and its column descriptions
+- See test coverage for each column
+- Visualize the dependency graph and how data flows from sources → staging → intermediate → marts
+![img_3.png](img_3.png)
+![img_1.png](img_1.png)
 
 ## Future Improvements
 
