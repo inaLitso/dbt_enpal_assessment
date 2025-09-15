@@ -1,0 +1,95 @@
+version: 2
+
+models:
+  - name: stg_pipedrive_activity
+    description: "Staging model for CRM activities. Standardizes raw activity data from Pipedrive."
+    columns:
+      - name: activity_id
+        description: "{{ doc('activity_id') }}"
+        tests:
+          - not_null
+          - unique
+      - name: assigned_to_user
+        description: "{{ doc('assigned_to_user') }}"
+      - name: deal_id
+        description: "{{ doc('deal_id') }}"
+      - name: is_done
+        description: "{{ doc('is_done') }}"
+      - name: due_to_at
+        description: "{{ doc('due_to_at') }}"
+      - name: activity_type
+        description: "{{ doc('activity_type') }}"
+        test:
+            - not_null
+            - accepted_values:
+                values: ['after_close_call', 'follow_up', 'meeting', 'sc_2']
+
+  - name: stg_pipedrive_activity_types
+    description: "Staging model for activity types from Pipedrive."
+    columns:
+      - name: id
+        description: "{{ doc('activity_type_id') }}"
+        tests:
+          - not_null
+          - unique
+      - name: name
+        description: "{{ doc('activity_type_name') }}"
+      - name: type
+        description: "{{ doc('activity_type_category') }}"
+      - name: is_active
+        description: "{{ doc('is_active') }}"
+
+  - name: stg_pipedrive_deal_changes
+    description: "Staging model for tracking changes in deals."
+    columns:
+      - name: deal_change_id
+        description: "{{ doc('deal_change_id') }}"
+      - name: deal_id
+        description: "{{ doc('deal_id') }}"
+      - name: change_time
+        description: "{{ doc('change_time') }}"
+      - name: changed_field_key
+        description: "{{ doc('changed_field_key') }}"
+      - name: new_value
+        description: "{{ doc('new_value') }}"
+
+  - name: stg_pipedrive_fields
+    description: "Staging model for Pipedrive fields metadata."
+    columns:
+      - name: field_key
+        description: "{{ doc('field_key') }}"
+      - name: field_value_options
+        description: "{{ doc('field_value_options') }}"
+      - name: id
+        description: "{{ doc('field_id') }}"
+        tests:
+          - not_null
+          - unique
+      - name: name
+        description: "{{ doc('field_name') }}"
+
+  - name: stg_pipedrive_stages
+    description: "Staging model for deal stages in Pipedrive."
+    columns:
+      - name: stage_id
+        description: "{{ doc('stage_id') }}"
+        tests:
+          - not_null
+          - unique
+      - name: stage_name
+        description: "{{ doc('stage_name') }}"
+
+  - name: stg_pipedrive_users
+    description: "Staging model for Pipedrive users."
+    columns:
+      - name: id
+        description: "{{ doc('user_id') }}"
+        tests:
+          - not_null
+          - unique
+      - name: email
+        description: "{{ doc('user_email') }}"
+      - name: name
+        description: "{{ doc('user_name') }}"
+      - name: modified
+        description: "{{ doc('user_modified') }}"
